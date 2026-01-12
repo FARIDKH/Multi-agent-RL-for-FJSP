@@ -22,15 +22,18 @@ class ObservationSpaces:
             # Current order view
             'order_size': spaces.Discrete(21),              # 0-20 products in order
             'products_remaining': spaces.Discrete(21),      # How many left to load
-            
+
             # Next product to load
             'next_product_type': spaces.Discrete(4),        # 0=None, 1=SMALL, 2=MEDIUM, 3=BIG
             'next_product_color': spaces.Discrete(4),       # 0=None, 1=RED, 2=BLUE, 3=GREEN
-            
+
             # Current tray state
-            'current_tray_type': spaces.Discrete(4),        # 0=Empty, 1=SMALL, 2=MEDIUM, 3=BIG  
+            'current_tray_type': spaces.Discrete(4),        # 0=Empty, 1=SMALL, 2=MEDIUM, 3=BIG
             'current_tray_color': spaces.Discrete(4),       # 0=Empty, 1=RED, 2=BLUE, 3=GREEN
             'current_tray_count': spaces.Discrete(6),       # 0-5 products on tray
+
+            # Action mask
+            'action_mask': spaces.Box(low=0, high=1, shape=(3,), dtype=np.int8),
         })
     
     @staticmethod
@@ -39,21 +42,26 @@ class ObservationSpaces:
         AGV observes:
         - Current position (grid cell)
         - Carrying tray (yes/no and its contents summary)
+        - Tray type (to know which machine to use)
         - Status of all stations (busy/free/queue length)
-        - Tray locations (where are trays that need moving)
+        - Ready trays at each location (trays waiting for pickup)
         """
         return spaces.Dict({
             'position': spaces.MultiDiscrete([CONFIG['grid_rows'], CONFIG['grid_cols']]),
             'carrying_tray': spaces.Discrete(2),  # 0=no, 1=yes
             'tray_product_count': spaces.Discrete(CONFIG['tray_capacity'] + 1),
+            'tray_type': spaces.Discrete(4),  # 0=none, 1=SMALL, 2=MEDIUM, 3=BIG
             'tray_needs_processing': spaces.Discrete(2),  # Does tray need machine?
             'tray_needs_packaging': spaces.Discrete(2),   # Does tray need packaging?
-            # Station status: 0=free, 1=busy, 2+=queue length
-            'pickup_queue': spaces.Discrete(10),
+            # Ready trays at pickup (trays AGV can pick up)
+            'pickup_ready_trays': spaces.Discrete(10),
             'small_machine_busy': spaces.Discrete(2),
             'big_machine_busy': spaces.Discrete(2),
+            # Ready trays at machines (processed, waiting for pickup)
+            'small_machine_ready': spaces.Discrete(10),
+            'big_machine_ready': spaces.Discrete(10),
             'storage_tray_count': spaces.Discrete(100),
-            'packaging_queues': spaces.MultiDiscrete([10, 10, 10, 10]),  # 2B,1R,1G
+            'action_mask': spaces.Box(low=0, high=1, shape=(8,), dtype=np.int8),
         })
     
     @staticmethod
@@ -68,9 +76,9 @@ class ObservationSpaces:
             'is_busy': spaces.Discrete(2),
             'processing_progress': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             'queue_length': spaces.Discrete(10),
-            'queue_product_types': spaces.MultiDiscrete([4] * 5),  # First 5 items in queue
+            'action_mask': spaces.Box(low=0, high=1, shape=(3,), dtype=np.int8),
         })
-    
+
     @staticmethod
     def big_machine() -> spaces.Dict:
         """Same structure as small machine."""
@@ -78,7 +86,7 @@ class ObservationSpaces:
             'is_busy': spaces.Discrete(2),
             'processing_progress': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             'queue_length': spaces.Discrete(10),
-            # 'queue_product_types': spaces.MultiDiscrete([4] * 5),
+            'action_mask': spaces.Box(low=0, high=1, shape=(3,), dtype=np.int8),
         })
     
     @staticmethod
@@ -93,4 +101,5 @@ class ObservationSpaces:
             'is_busy': spaces.Discrete(2),
             'processing_progress': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             'queue_length': spaces.Discrete(20),
+            'action_mask': spaces.Box(low=0, high=1, shape=(3,), dtype=np.int8),
         })

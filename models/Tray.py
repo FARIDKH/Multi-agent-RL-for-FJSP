@@ -11,6 +11,7 @@ class Tray:
     capacity: int = 5
     products: List[Product] = field(default_factory=list)
     current_location: Optional[LocationType] = None
+    order_id: int = None
     
     def is_full(self) -> bool:
         return len(self.products) >= self.capacity
@@ -32,4 +33,27 @@ class Tray:
             return None
         return self.products[0].product_type.name
     
+    @property
+    def needs_processing(self):
+        
+        for product in self.products:
+            if not product.is_processed:
+                return True
+
+        return False
+    
+    @property
+    def needs_packaging(self):
+
+        for product in self.products:
+            if not product.is_packaged:
+                return True
+
+        return False
+    
+
+    def change_location_to(self, location: LocationType):
+        self.location = location
+        for product in self.products:
+            product.current_location = location
     

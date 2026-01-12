@@ -26,6 +26,7 @@ CONFIG = {
     'num_packaging_green': 1,
     'grid_rows': 4,
     'grid_cols': 6,
-    'agv_speed': 1,  
+    'agv_speed': 1,
     'step_size': 10,  # RL step size in simulation time units
+    'max_episode_steps': 200,  # Max steps per episode before truncation
 }

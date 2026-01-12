@@ -43,7 +43,7 @@ class RewardModel:
 
         return reward
     
-    def calculate_local_reward(self, 
+    def calculate_local_reward(self,
                                agent_type: AgentType,
                                action_taken: int,
                                action_result: Dict[str, Any]) -> float:
@@ -51,34 +51,47 @@ class RewardModel:
         reward = 0.0
         match agent_type:
             case AgentType.PICKUP_STATION:
-                if action_taken == 1:  # LOAD_NEXT_PRODUCT
+                if action_result.get('product_loaded', False):
                     reward += self.PICKUP_LOAD_REWARD
-                elif action_taken == 2 and action_result.get('tray_complete', False):
+                if action_result.get('tray_completed', False):
                     reward += self.PICKUP_TRAY_COMPLETE
-                elif action_taken == 0:  # IDLE
+                # Only penalize idle when there are orders waiting
+                if action_taken == 0 and action_result.get('idle_with_orders', False):
                     reward += self.PICKUP_IDLE_PENALTY
+
             case AgentType.AGV:
-                if action_taken in [1, 2, 3, 4, 5]:  #
-                    reward += self.AGV_MOVE_PENALTY
-                elif action_taken == 6 and action_result.get('delivered', True):
+                # Reward for successful pickup
+                if action_result.get('pickup_success', False):
                     reward += self.AGV_DELIVERY_REWARD
-                elif action_taken == 7 and action_result.get('packaged', True):
+                # Reward for successful drop
+                if action_result.get('drop_success', False):
+                    reward += self.AGV_DELIVERY_REWARD
+                # Extra reward for delivering to packaging
+                if action_result.get('delivered_to_packaging', False):
                     reward += self.AGV_PACKAGING_DELIVERY
-                else:
+                # Small penalty for movement (encourages efficiency)
+                if action_result.get('moved', False):
+                    reward += self.AGV_MOVE_PENALTY
+                # Penalty for invalid actions
+                if action_result.get('invalid_action', False):
                     reward += self.AGV_INVALID_ACTION
+
             case AgentType.SMALL_MACHINE | AgentType.BIG_MACHINE:
-                if action_taken == 1:  # START_PROCESSING
+                if action_result.get('started_processing', False):
                     reward += self.MACHINE_START_REWARD
-                elif action_taken == 2 and action_result.get('processing_complete', False):
+                if action_result.get('completed_processing', False):
                     reward += self.MACHINE_COMPLETE_REWARD
-                elif action_taken == 0:  # IDLE
+                # Only penalize idle when there's work waiting
+                if action_taken == 0 and action_result.get('idle_with_queue', False):
                     reward += self.MACHINE_IDLE_PENALTY
+
             case AgentType.PACKAGING:
-                if action_taken == 1:  # START_PACKAGING
+                if action_result.get('started_packaging', False):
                     reward += self.PACKAGING_START_REWARD
-                elif action_taken == 2 and action_result.get('packaging_complete', False):
+                if action_result.get('completed_packaging', False):
                     reward += self.PACKAGING_COMPLETE_REWARD
-                elif action_taken == 0:  # IDLE
+                # Only penalize idle when there's work waiting
+                if action_taken == 0 and action_result.get('idle_with_queue', False):
                     reward += self.PACKAGING_IDLE_PENALTY
 
         return reward

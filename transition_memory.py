@@ -60,15 +60,21 @@ class MultiAgentTransitionMemory:
             if len(reward_traj) == 0:
                 continue
             
+            # Use detached scalars for return/advantage computation to avoid holding graphs
+            value_traj_detached = [
+                v.detach().item() if torch.is_tensor(v) else float(v)
+                for v in value_traj
+            ]
+            
             # Compute returns
             return_traj = self._compute_returns(reward_traj, next_value)
             self.return_lst[agent_id].extend(return_traj)
             
             # Compute advantages
             if self.use_gae:
-                adv_traj = self._compute_gae(reward_traj, value_traj, next_value)
+                adv_traj = self._compute_gae(reward_traj, value_traj_detached, next_value)
             else:
-                adv_traj = self._compute_advantages(return_traj, value_traj)
+                adv_traj = self._compute_advantages(return_traj, value_traj_detached)
             self.adv_lst[agent_id].extend(adv_traj)
             
             # Update trajectory start
@@ -121,3 +127,7 @@ class MultiAgentTransitionMemory:
             self.return_lst[agent_id] = []
             self.adv_lst[agent_id] = []
             self.traj_start[agent_id] = 0
+
+    def has_data(self) -> bool:
+        """Check if memory has any data."""
+        return any(len(self.obs_lst[agent]) > 0 for agent in self.agent_ids)

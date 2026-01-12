@@ -13,6 +13,7 @@ class Order:
     products: List[Product]
     arrival_time: float
     
+    
     # State tracking
     is_complete: bool = False
     completion_time: Optional[float] = None
@@ -21,3 +22,8 @@ class Order:
         """Check if all products in order are packaged."""
         # All products packaged means order complete
         pass
+
+    @property
+    def product_type(self):
+        for product in self.products:
+            return product.product_type

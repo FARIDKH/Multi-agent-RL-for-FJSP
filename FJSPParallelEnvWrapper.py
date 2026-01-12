@@ -44,9 +44,13 @@ class FJSPParallelEnv(ParallelEnv):
         """
         Reset environment.
         Returns: (observations, infos)
+
+        Options:
+            num_orders: int - Number of orders to generate (default: 30)
         """
         self.agents = self.possible_agents.copy()
-        observations, infos = self.simulation.reset(seed)
+        num_orders = options.get('num_orders') if options else None
+        observations, infos = self.simulation.reset(seed, num_orders=num_orders)
         return observations, infos
     
     def step(self, actions: Dict[str, int]) -> Tuple[Dict, Dict, Dict, Dict, Dict]:
