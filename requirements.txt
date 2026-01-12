@@ -1,0 +1,18 @@
+# MARL-FJSP Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core RL and Simulation
+simpy>=4.0.0
+pettingzoo>=1.24.0
+gymnasium>=0.29.0
+
+# Deep Learning
+torch>=2.0.0
+
+# Scientific Computing
+numpy>=1.24.0
+
+# Visualization
+matplotlib>=3.7.0
+
+
