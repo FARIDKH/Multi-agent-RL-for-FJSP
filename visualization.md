@@ -144,6 +144,8 @@ Step: {step} | Episode: {episode} | Orders: {completed}/{total}
 ### Enable Visualization
 ```bash
 python train.py --visualize
+or
+python train.py --timesteps 1000 --heuristic -v --test_only_viz
 ```
 
 ### Programmatic Usage
