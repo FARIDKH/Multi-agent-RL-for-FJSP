@@ -730,6 +730,50 @@ class MultiAgentA2C:
 
         return -(adv_tensor * torch.stack(logprob_lst)).mean()
 
+    def save_model(self, path: str):
+        """
+        Save all actor networks and the critic network to a file.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the model checkpoint
+        """
+        import os
+        os.makedirs(os.path.dirname(path) if os.path.dirname(path) else '.', exist_ok=True)
+
+        checkpoint = {
+            'actor_nets': {agent_id: net.state_dict() for agent_id, net in self.actor_nets.items()},
+            'critic_net': self.critic_net.state_dict(),
+            'obs_dims': self.obs_dims,
+            'act_dims': self.act_dims,
+            'global_obs_dim': self.global_obs_dim,
+            'possible_agents': self.possible_agents,
+        }
+        torch.save(checkpoint, path)
+        print(f"Model saved to {path}")
+
+    def load_model(self, path: str):
+        """
+        Load actor networks and critic network from a file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the model checkpoint
+        """
+        checkpoint = torch.load(path, weights_only=False)
+
+        # Load actor networks
+        for agent_id, state_dict in checkpoint['actor_nets'].items():
+            if agent_id in self.actor_nets:
+                self.actor_nets[agent_id].load_state_dict(state_dict)
+
+        # Load critic network
+        self.critic_net.load_state_dict(checkpoint['critic_net'])
+
+        print(f"Model loaded from {path}")
+
     def plot_losses(self, save_path: str = None, show: bool = True):
         """
         Plot actor and critic loss curves.

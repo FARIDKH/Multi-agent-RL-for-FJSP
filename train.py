@@ -103,6 +103,12 @@ def parse_args():
     parser.add_argument('--heuristic', action='store_true',
                         help='Use rule-based heuristic policy for testing instead of learned policy')
 
+    # Test-only mode
+    parser.add_argument('--test_only', action='store_true',
+                        help='Skip training and only run test with a loaded model')
+    parser.add_argument('--load_path', type=str, default=None,
+                        help='Path to load a pre-trained model checkpoint')
+
     return parser.parse_args()
 
 
@@ -171,42 +177,63 @@ def train(args):
     print(f"  Action dimensions: {ma2c.act_dims}")
     print()
 
-    # Training
-    print("=" * 60)
-    print("Starting training...")
-    print(f"  Total timesteps: {args.timesteps}")
-    print(f"  Batch size: {args.batch_size}")
-    print(f"  Gamma: {args.gamma}")
-    print(f"  Lambda: {args.lamb}")
-    print(f"  Actor LR: {args.lr_actor}")
-    print(f"  Critic LR: {args.lr_critic}")
-    print(f"  Entropy coef: {args.entropy_coef}")
-    print(f"  Max grad norm: {args.max_grad_norm}")
-    print(f"  Training orders: {args.train_orders}")
-    print(f"  Test orders: {args.test_orders}")
-    print(f"  Visualization (train): {visualize_training}")
-    print(f"  Visualization (test): {args.visualize or args.test_only_viz}")
-    print("=" * 60)
-    print()
+    # Load pre-trained model if specified
+    if args.load_path:
+        print(f"Loading model from {args.load_path}...")
+        ma2c.load_model(args.load_path)
 
-    # Run training with train_orders
-    episode_rewards = ma2c.learn(total_timesteps=args.timesteps, num_orders=args.train_orders)
-    
-    # Plot rewards vs timesteps
-    plot_rewards_vs_timesteps(ma2c.episode_end_timesteps, episode_rewards, out_path="reward_curve.png")
+    # Skip training if test_only mode
+    episode_rewards = []
+    if args.test_only:
+        print("=" * 60)
+        print("TEST-ONLY MODE: Skipping training")
+        print("=" * 60)
+        if not args.load_path:
+            print("WARNING: No model loaded (--load_path not specified)")
+            print("         Using untrained/random policy!")
+    else:
+        # Training
+        print("=" * 60)
+        print("Starting training...")
+        print(f"  Total timesteps: {args.timesteps}")
+        print(f"  Batch size: {args.batch_size}")
+        print(f"  Gamma: {args.gamma}")
+        print(f"  Lambda: {args.lamb}")
+        print(f"  Actor LR: {args.lr_actor}")
+        print(f"  Critic LR: {args.lr_critic}")
+        print(f"  Entropy coef: {args.entropy_coef}")
+        print(f"  Max grad norm: {args.max_grad_norm}")
+        print(f"  Training orders: {args.train_orders}")
+        print(f"  Test orders: {args.test_orders}")
+        print(f"  Visualization (train): {visualize_training}")
+        print(f"  Visualization (test): {args.visualize or args.test_only_viz}")
+        print("=" * 60)
+        print()
 
-    # Training complete
-    print()
-    print("=" * 60)
-    print("Training Complete!")
-    print("=" * 60)
-    print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Total episodes: {len(episode_rewards)}")
+        # Run training with train_orders
+        episode_rewards = ma2c.learn(total_timesteps=args.timesteps, num_orders=args.train_orders)
 
-    if len(episode_rewards) > 0:
-        print(f"Final avg reward (last 10): {np.mean(episode_rewards[-10:]):.2f}")
-        print(f"Best episode reward: {max(episode_rewards):.2f}")
-        print(f"Worst episode reward: {min(episode_rewards):.2f}")
+        # Plot rewards vs timesteps
+        plot_rewards_vs_timesteps(ma2c.episode_end_timesteps, episode_rewards, out_path="reward_curve.png")
+
+        # Training complete
+        print()
+        print("=" * 60)
+        print("Training Complete!")
+        print("=" * 60)
+        print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Total episodes: {len(episode_rewards)}")
+
+        if len(episode_rewards) > 0:
+            print(f"Final avg reward (last 10): {np.mean(episode_rewards[-10:]):.2f}")
+            print(f"Best episode reward: {max(episode_rewards):.2f}")
+            print(f"Worst episode reward: {min(episode_rewards):.2f}")
+
+        # Save model after training
+        import os
+        os.makedirs(args.save_path, exist_ok=True)
+        model_path = os.path.join(args.save_path, "model.pt")
+        ma2c.save_model(model_path)
 
     # === TEST PHASE ===
     # Run test with test_orders and visualization if requested
@@ -218,9 +245,6 @@ def train(args):
         use_heuristic=args.heuristic
     )
 
-    # Save model (optional)
-    # TODO: Implement model saving
-    # save_model(ma2c, args.save_path)
 
     return ma2c, episode_rewards, test_results
 
